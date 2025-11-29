@@ -1,0 +1,123 @@
+repeat task.wait() until game:IsLoaded()
+
+local splib = loadstring(game:HttpGet("https://raw.githubusercontent.com/vgsfdsd/thisosmebullshit/refs/heads/main/booo"))()
+
+local ForsakenReachEnabled = false
+local NearestDist = 120
+
+local Window = splib:MakeWindow({
+    Name = "ui",
+    HidePremium = false,
+    SaveConfig = true,
+    Setting = true,
+    ToggleIcon = "rbxassetid://109366555045344",
+    ConfigFolder = "SigmaConfigs",
+    CloseCallback = true
+})
+
+local Tab = Window:MakeTab({
+    IsMobile = false,
+    Name = "Reach",
+    Icon = "rbxassetid://4483345998"
+})
+
+Tab:AddToggle({
+    Name = "Reach",
+    Desc = "hihi",
+    Default = false,
+    Flag = "ForsakenReachToggle",
+    Save = true,
+    Callback = function(Value)
+        ForsakenReachEnabled = Value
+    end
+})
+
+Tab:AddSlider({
+    Name = "Reach Distance",
+    Min = 10,
+    Max = 1000,
+    Default = 120,
+    Increment = 1,
+    ValueName = "studs",
+    Flag = "ForsakenReachSlider",
+    Save = true,
+    Callback = function(Value)
+        NearestDist = Value
+    end
+})
+
+local Players = game:GetService('Players')
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+Player.CharacterAdded:Connect(function(NewCharacter)
+    Character = NewCharacter
+    Humanoid = Character:WaitForChild("Humanoid")
+    HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+end)
+
+local RNG = Random.new()
+
+local AttackAnimations = {
+"rbxassetid://125312147135129", -- slasher
+"rbxassetid://96574747083004" -- su tart
+}
+
+game:GetService('RunService').Heartbeat:Connect(function()
+    if not ForsakenReachEnabled or not HumanoidRootPart then
+        return
+    end
+
+    local Playing = false
+    for _,v in Humanoid:GetPlayingAnimationTracks() do
+        if table.find(AttackAnimations, v.Animation.AnimationId) and (v.TimePosition / v.Length < 0.75) then
+            Playing = true
+        end
+    end
+
+    if not Playing then
+        return
+    end
+
+    local Target
+    local CurrentNearestDist = NearestDist
+
+    local function loop(t)
+        for _,v in t do
+            if v == Character or not v:FindFirstChild("HumanoidRootPart") then
+                continue
+            end
+            local Dist = (v.HumanoidRootPart.Position - HumanoidRootPart.Position).Magnitude
+            if Dist < CurrentNearestDist then
+                CurrentNearestDist = Dist
+                Target = v
+            end
+        end
+    end
+
+    loop(workspace.Players:GetDescendants())
+    local npcsFolder = workspace.Map:FindFirstChild("NPCs", true)
+    if npcsFolder then
+        loop(npcsFolder:GetChildren())
+    end
+
+    if not Target then
+        return
+    end
+
+    local OldVelocity = HumanoidRootPart.Velocity
+    local NeededVelocity =
+    (Target.HumanoidRootPart.Position + Vector3.new(
+        RNG:NextNumber(-1.5, 1.5),
+        0,
+        RNG:NextNumber(-1.5, 1.5)
+    ) + (Target.HumanoidRootPart.Velocity * (Player:GetNetworkPing() * 1.25))
+        - HumanoidRootPart.Position
+    ) / (Player:GetNetworkPing() * 2)
+
+    HumanoidRootPart.Velocity = NeededVelocity
+    game:GetService('RunService').RenderStepped:Wait()
+    HumanoidRootPart.Velocity = OldVelocity
+end)
